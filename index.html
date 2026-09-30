@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cricket Clash - 6 Over Championship</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://esm.sh/three@0.160.0",
+          "cannon-es": "https://esm.sh/cannon-es@0.20.0"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div id="match-setup">
+        <div class="setup-card glass-box">
+            <div class="setup-brand">CRICKET CLASH</div>
+            <h1>6 OVER CHAMPIONSHIP</h1>
+            <p class="setup-subtitle">Build your match, win the toss, and chase glory.</p>
+            <div class="team-picker">
+                <label>YOUR TEAM
+                    <select id="team-player">
+                        <option value="Pakistan">Pakistan</option>
+                        <option value="India">India</option>
+                        <option value="Australia">Australia</option>
+                        <option value="England">England</option>
+                        <option value="South Africa">South Africa</option>
+                        <option value="New Zealand">New Zealand</option>
+                    </select>
+                </label>
+                <label>OPPONENT
+                    <select id="team-opponent">
+                        <option value="Australia">Australia</option>
+                        <option value="India">India</option>
+                        <option value="England">England</option>
+                        <option value="South Africa">South Africa</option>
+                        <option value="New Zealand">New Zealand</option>
+                        <option value="Pakistan">Pakistan</option>
+                    </select>
+                </label>
+            </div>
+            <div class="match-options">
+                <label>STADIUM
+                    <select id="stadium-select"><option>National Arena</option><option>Riverside Oval</option><option>Night Lights</option></select>
+                </label>
+                <label>TIME
+                    <select id="time-select"><option value="night">Night</option><option value="day">Day</option></select>
+                </label>
+                <label>DIFFICULTY
+                    <select id="difficulty-select"><option>Easy</option><option selected>Medium</option><option>Hard</option><option>Pro</option></select>
+                </label>
+            </div>
+            <div id="setup-error" class="setup-error"></div>
+            <button id="btn-toss" class="setup-primary">GO TO TOSS</button>
+            <div id="toss-stage" class="hidden">
+                <div class="coin" id="toss-coin">?</div>
+                <div id="toss-message">Call the toss</div>
+                <div class="toss-actions">
+                    <button class="toss-call" data-call="Heads">HEADS</button>
+                    <button class="toss-call" data-call="Tails">TAILS</button>
+                </div>
+                <div id="innings-choice" class="hidden">
+                    <p id="toss-result"></p>
+                    <button id="btn-bat-first" class="innings-btn">BAT FIRST</button>
+                    <button id="btn-bowl-first" class="innings-btn">BOWL FIRST</button>
+                </div>
+            </div>
+            <button id="btn-start-match" class="setup-primary hidden">START MATCH</button>
+        </div>
+    </div>
+    <!-- 3D Stadium Canvas -->
+    <div id="game-container"></div>
+
+    <!-- Match HUD matching reference image -->
+    <div id="hud">
+        
+        <!-- Top-Left Scorecard Card -->
+        <div id="top-left-scorecard" class="glass-box">
+            <div class="score-main-row">
+                <div class="team-identity">
+                    <span class="pak-star">*</span>
+                    <span id="team-code" class="team-code">PAK</span>
+                </div>
+                <div class="score-count">
+                    <span id="score" class="score-runs">75</span>/<span id="wickets" class="score-wkts">2</span>
+                </div>
+            </div>
+            
+            <div class="score-sub-row">
+                <span class="sub-lbl">OVERS</span>
+                <span id="overs" class="sub-val">4.3</span>
+                <span class="sub-max">(6)</span>
+            </div>
+
+            <div class="score-sub-row">
+                <span class="sub-lbl">CURRENT RR</span>
+                <span id="current-rr" class="sub-val">16.66</span>
+            </div>
+
+            <div id="target-chase-banner">
+                <span id="target-equation-text">SET YOUR TARGET AT THE TOSS</span>
+            </div>
+        </div>
+
+        <!-- Top-Right Radar / Mini-Map -->
+        <div id="top-right-radar" class="glass-box">
+            <canvas id="radar-canvas" width="120" height="90"></canvas>
+            <div class="field-preset-pill">
+                <span id="field-preset-name">DEFENSIVE 1</span>
+                <span class="arrow-icon">&gt;</span>
+            </div>
+
+            <div id="bowling-panel" class="glass-box">
+                <div class="panel-kicker">BOWLER CONTROL</div>
+                <div class="delivery-types">
+                    <button class="delivery-btn active" data-delivery="fast">FAST</button>
+                    <button class="delivery-btn" data-delivery="yorker">YORKER</button>
+                    <button class="delivery-btn" data-delivery="slower">SLOWER</button>
+                    <button class="delivery-btn" data-delivery="bouncer">BOUNCER</button>
+                    <button class="delivery-btn" data-delivery="cutter">CUTTER</button>
+                    <button class="delivery-btn" data-delivery="spin">SPIN</button>
+                </div>
+                <label>LINE <input id="bowl-line-control" type="range" min="-1" max="1" step="0.05" value="0"></label>
+                <label>LENGTH <input id="bowl-length-control" type="range" min="0.7" max="2.2" step="0.05" value="1.55"></label>
+                <div id="delivery-status">READY TO BOWL</div>
+            </div>
+        </div>
+
+        <!-- Speed Radar (Center Pop-up on Delivery) -->
+        <div id="speed-radar" class="glass-box hidden">
+            <span class="radar-label">BALL SPEED</span>
+            <span id="speed-val" class="radar-num">146.4</span>
+            <span class="radar-unit">KM/H</span>
+        </div>
+
+        <!-- Center Shot Timing Feedback Banner -->
+        <div id="center-feedback">
+            <div id="timing-feedback" class="hidden">PERFECT TIMING!</div>
+        </div>
+
+        <div id="wicket-feed" class="glass-box hidden">
+            <div class="feed-kicker">WICKET</div>
+            <strong id="wicket-feed-title">OUT!</strong>
+            <span id="wicket-feed-desc">Caught in the deep</span>
+        </div>
+
+        <!-- Bottom Controls & Broadcast Strip -->
+        <div id="bottom-layer">
+            
+            <!-- Bottom-Left: Virtual Analog Joystick (Footwork & Aim) -->
+            <div id="joystick-wrapper">
+                <div id="joystick-base">
+                    <div id="joystick-stick"></div>
+                    <div class="joystick-label">FOOTWORK</div>
+                </div>
+            </div>
+
+            <!-- Bottom-Right: 4 Circular Shot Action Buttons -->
+            <div id="shot-action-cluster">
+                <!-- LOFT BUTTON (Top) -->
+                <button id="btn-action-loft" class="action-circle-btn loft-circle" title="Lofted 6">
+                    <svg class="action-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L4 10h5v10h6V10h5z"/></svg>
+                    <span>LOFT</span>
+                </button>
+
+                <!-- DRIVE BUTTON (Left) -->
+                <button id="btn-action-drive" class="action-circle-btn drive-circle active" title="Ground Drive">
+                    <svg class="action-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M14 6l-6 6 6 6V6z"/></svg>
+                    <span>DRIVE</span>
+                </button>
+
+                <!-- DEFEND BUTTON (Bottom) -->
+                <button id="btn-action-defend" class="action-circle-btn defend-circle" title="Defend">
+                    <svg class="action-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22l-8-8h5V4h6v10h5z"/></svg>
+                    <span>DEFEND</span>
+                </button>
+                <button id="btn-action-pull" class="shot-mini-btn" title="Pull shot">PULL</button>
+                <button id="btn-action-cut" class="shot-mini-btn" title="Cut shot">CUT</button>
+                <button id="btn-action-sweep" class="shot-mini-btn" title="Sweep shot">SWEEP</button>
+
+                <!-- MAIN SHOT / SWING BUTTON (Large Right) -->
+                <button id="btn-action-shot" class="action-circle-btn main-shot-circle" title="Hit Shot">
+                    <svg class="action-svg large-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M5 13l4 4L19 7l-1.4-1.4L9 14.2 6.4 11.6z"/></svg>
+                    <span>SHOT</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Bottom Broadcast Strip (Partnership & Bowler) -->
+        <div id="bottom-broadcast-bar" class="glass-box">
+            
+            <!-- Striker & Non-Striker Partnership -->
+            <div class="batting-partnership-zone">
+                <div class="player-avatar striker-avatar">
+                    <div id="striker-avatar" class="avatar-circle green-av">B</div>
+                </div>
+                <div class="player-score-entry">
+                    <div class="p-name striker-name"><span id="striker-name">BABAR AZAM</span> <span class="active-dot">*</span></div>
+                    <div class="p-score"><span id="striker-runs">43</span> <span class="p-balls">(<span id="striker-balls">19</span>)</span></div>
+                    <div class="p-detail"><span id="striker-strike-rate">SR 0.00</span><span id="striker-boundaries">0x4 0x6</span></div>
+                </div>
+
+                <div class="player-avatar nonstriker-avatar">
+                    <div id="nonstriker-avatar" class="avatar-circle green-av">R</div>
+                </div>
+                <div class="player-score-entry">
+                    <div class="p-name"><span id="nonstriker-name">RIZWAN</span></div>
+                    <div class="p-score"><span id="nonstriker-runs">18</span> <span class="p-balls">(<span id="nonstriker-balls">6</span>)</span></div>
+                    <div class="p-detail"><span id="nonstriker-strike-rate">SR 0.00</span><span id="nonstriker-boundaries">0x4 0x6</span></div>
+                </div>
+
+                <div class="partnership-box">
+                    <div class="part-lbl">PARTNERSHIP</div>
+                    <div class="part-val"><span id="part-runs">36</span> (<span id="part-balls">13</span>)</div>
+                    <div id="batting-status" class="batting-status">AT THE CREASE</div>
+                </div>
+            </div>
+
+            <!-- Bowler & Recent Over Balls -->
+            <div class="bowler-zone">
+                <div class="player-avatar bowler-avatar">
+                    <div class="avatar-circle yellow-av">S</div>
+                </div>
+                <div class="bowler-info-entry">
+                    <div id="bowler-name" class="b-name">STARC</div>
+                    <div id="over-ball-ticker" class="ball-ticker-strip">
+                        <span class="b-pill b-one">1</span>
+                        <span class="b-pill b-wkt">W</span>
+                        <span class="b-pill b-four">4</span>
+                        <span class="b-pill b-dot">0</span>
+                        <span class="b-pill b-four">4</span>
+                        <span class="b-pill b-two">2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bowl Button for User (Toggleable / Key [B]) -->
+            <button id="btn-quick-bowl" class="quick-bowl-btn" title="Press [B] or click to bowl">
+                BOWL
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Celebration & Wicket Modal -->
+    <div id="overlay" class="hidden">
+        <div class="overlay-modal glass-box">
+            <div id="overlay-badge" class="celebration-badge">BOUNDARY</div>
+            <h1 id="overlay-title">FOUR!</h1>
+            <p id="overlay-desc">Glorious cover drive beating the infield!</p>
+            <button id="btn-continue" class="action-btn continue-btn">NEXT BALL</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
